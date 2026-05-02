@@ -894,6 +894,7 @@ textarea::placeholder {
   grid-auto-rows: 74px;
   gap: 6px;
   min-height: 590px;
+  width: 100%;
   padding: 24px 8px 36px;
   overflow: hidden;
 }
@@ -1218,6 +1219,32 @@ textarea::placeholder {
   background: rgba(255, 251, 253, 0.66);
   color: var(--muted);
   line-height: 1.5;
+}
+
+.bubble-room > .empty-state {
+  position: relative;
+  z-index: 1;
+  grid-column: 1 / -1;
+  justify-self: center;
+  align-self: start;
+  width: 100%;
+  width: min(360px, 85vw);
+  min-width: 240px;
+  max-width: 360px;
+  margin: 48px auto 0;
+  padding: 24px 28px;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.bubble-room > .empty-state p {
+  margin: 0;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .bottom-nav {
