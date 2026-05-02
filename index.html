@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laýa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Poppins:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <button class="brand-button" data-route="home" type="button" aria-label="Go home">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>Laýa</span>
+        </button>
+      </header>
+
+      <main>
+        <section class="screen active landing-screen" id="homeScreen" aria-labelledby="homeTitle">
+          <div class="hero-art" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <p class="eyebrow">LAÝA</p>
+          <h1 id="homeTitle">Laýa</h1>
+          <p class="tagline">For the things you're ready to release.</p>
+          <p class="intro">Say what you can't say out loud.<br />Let it be held, gently.</p>
+          <p class="microcopy">You don't have to explain everything.</p>
+          <div class="cta-stack">
+            <button class="primary-button" data-route="whisper" type="button">Leave a Whisper</button>
+            <button class="secondary-button" data-route="listen" type="button">Enter the Room</button>
+          </div>
+          <div class="trust-line">Anonymous · Gentle · No pressure</div>
+          <div class="boundary-strip">
+            <span>No profiles</span>
+            <span aria-hidden="true">·</span>
+            <span>No chasing</span>
+            <span aria-hidden="true">·</span>
+            <span>Just kindness</span>
+          </div>
+        </section>
+
+        <section class="screen" id="whisperScreen" aria-labelledby="whisperTitle">
+          <div class="section-top whisper-top">
+            <p class="eyebrow">whisper</p>
+            <h2 id="whisperTitle">Say it gently…</h2>
+            <p> No one knows it’s you </p> 
+        
+          </div>
+
+          <form class="whisper-form-card" id="whisperForm">
+            <div class="reminder">
+              This is a kindness-only space. Please do not share personal details, contact information, or anything that identifies you.
+            </div>
+
+            <label class="language-field" for="whisperLanguage">
+              <span>What language are you whispering in?</span>
+              <select id="whisperLanguage">
+                <option>English</option>
+                <option>Filipino / Tagalog</option>
+                <option>Taglish</option>
+                <option>Spanish</option>
+                <option>French</option>
+                <option>Arabic</option>
+                <option>Hindi</option>
+                <option>Mandarin Chinese</option>
+                <option>Indonesian / Malay</option>
+                <option>Portuguese</option>
+                <option>Russian</option>
+                <option>Japanese</option>
+                <option>Korean</option>
+                <option>Cebuano / Bisaya</option>
+                <option>Other</option>
+              </select>
+            </label>
+
+            <div class="voice-recorder primary-recorder">
+              <div class="recorder-copy">
+      
+                
+              </div>
+              <div class="recorder-orb">
+                <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <button class="record-button" id="recordButton" type="button" aria-label="Record voice whisper">
+                  <span class="mic-icon" aria-hidden="true"></span>
+                </button>
+              </div>
+              <p class="record-status" id="recordStatus">Tap to begin recording</p>
+              <div class="voice-actions">
+                <button class="soft-button small" id="playDraftButton" type="button" disabled>Play</button>
+                <button class="text-button small" id="clearDraftButton" type="button" disabled>Clear</button>
+              </div>
+            </div>
+
+            <div class="journal-container">
+              <textarea
+                id="whisperText"
+                maxlength="420"
+                placeholder="Prefer to write instead…"
+              ></textarea>
+
+              <div class="journal-footer">
+                <span class="char-count"><span id="charCount">0</span>/420</span>
+              </div>
+            </div>
+
+            <fieldset class="mood-field">
+              <legend>What does this feel like?</legend>
+              <div class="mood-grid" id="moodGrid"></div>
+            </fieldset>
+
+            <fieldset class="mood-field intensity-field">
+              <legend>How much is it weighing on you?</legend>
+              <div class="intensity-grid" id="intensityGrid"></div>
+            </fieldset>
+
+            <div class="notice hidden" id="blockNotice" role="alert"></div>
+            <button class="primary-button full" type="submit">Release</button>
+          </form>
+        </section>
+
+        <section class="screen" id="listenScreen" aria-labelledby="listenTitle">
+          <div class="section-top">
+            <p class="eyebrow">the room</p>
+            <h2 id="listenTitle">Feelings are floating here</h2>
+            <p class="small-line">Tap a feeling. Hold space for someone.</p>
+          </div>
+          <div class="listen-banner hidden" id="listenCapacityBanner">
+            <strong>You're in a gentle space today.</strong>
+            <span>Only lighter feelings will find you here.</span>
+          </div>
+          <div class="bubble-room" id="bubbleRoom"></div>
+        </section>
+
+        <section class="screen" id="mineScreen" aria-labelledby="mineTitle">
+          <div class="section-top">
+            <p class="eyebrow">my whispers</p>
+            <h2 id="mineTitle">From this device</h2>
+            <p>See the kindness your whispers received before they fade.</p>
+          </div>
+          <section class="kindness-jar" id="kindnessJar" aria-live="polite"></section>
+          <div class="feed" id="myFeed"></div>
+        </section>
+
+        <section class="screen rest-screen" id="restScreen" aria-labelledby="restTitle">
+          <div class="rest-card">
+            <div class="grounding-orb" aria-hidden="true"></div>
+            <p class="eyebrow">rest</p>
+            <h2 id="restTitle">You've done enough for now.</h2>
+            <p>You can come back when you feel lighter.</p>
+            <button class="secondary-button" data-route="mine" type="button">See My Whispers</button>
+          </div>
+        </section>
+      </main>
+
+      <footer class="credit-footer">by @lavenderhours</footer>
+
+      <nav class="bottom-nav" aria-label="Primary navigation">
+        <button class="nav-button active" data-route="whisper" type="button">
+          <span aria-hidden="true">+</span>
+          Whisper
+        </button>
+        <button class="nav-button" data-route="listen" type="button">
+          <span aria-hidden="true">~</span>
+          The Room
+        </button>
+        <button class="nav-button" data-route="mine" type="button">
+          <span aria-hidden="true">•</span>
+          My Whispers
+        </button>
+      </nav>
+    </div>
+
+    <div class="receive-transition hidden" id="receiveTransition" aria-hidden="true">
+      <div class="receive-card">
+        <h3>Someone left this here.</h3>
+        <p>Take it gently.</p>
+      </div>
+    </div>
+
+    <dialog id="kindnessDialog">
+      <form class="modal-card kindness-form" id="kindnessForm" method="dialog">
+        <button class="icon-button" value="cancel" aria-label="Close" type="submit">x</button>
+        <p class="eyebrow" id="kindnessMood">send kindness</p>
+        <h3 id="kindnessTitle">Someone left this here.</h3>
+        <p class="modal-expiry" id="intensityLabel"></p>
+        <p class="modal-whisper" id="kindnessContent"></p>
+        <audio class="voice-player hidden" id="kindnessAudio" controls></audio>
+        <p class="modal-expiry">This whisper fades after 7 days.</p>
+        <section class="kindness-compose" id="kindnessCompose">
+          <div>
+            <h4>Leave a little kindness.</h4>
+            <p id="replyGuidance">No advice. No fixing. Just presence.</p>
+          </div>
+
+          <fieldset class="tone-field">
+            <legend>Choose the feeling of your reply</legend>
+            <div class="tone-list" id="toneList"></div>
+          </fieldset>
+
+          <label class="reply-field" for="kindnessMessage">
+            <span>Write a short kindness note</span>
+            <textarea
+              id="kindnessMessage"
+              maxlength="150"
+              rows="2"
+              placeholder="Write something soft and human…"
+            ></textarea>
+            <small><span id="kindnessCount">0</span>/150</small>
+          </label>
+
+          <div class="starter-list" id="starterList" aria-label="Suggested starters"></div>
+          <p class="reply-warning hidden" id="replyWarning" role="alert"></p>
+          <p class="reply-success hidden" id="replySuccess">Your kindness was felt.</p>
+          <button class="primary-button full" id="sendKindnessButton" type="submit">Send gently</button>
+        </section>
+        <button class="text-button report-action" id="modalReportButton" type="button">Report whisper</button>
+      </form>
+    </dialog>
+
+    <dialog id="crisisDialog">
+      <form class="modal-card support-modal" method="dialog">
+        <p class="eyebrow">support first</p>
+        <h3>You deserve real support right now.</h3>
+        <p>
+          If you might hurt yourself or feel unsafe, please contact a crisis hotline or trusted person near you.
+        </p>
+        <div class="modal-actions">
+          <button class="secondary-button" value="cancel" type="submit">Go back</button>
+          <button class="primary-button" id="continuePostButton" value="default" type="button">Continue posting</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="senderSupportDialog">
+      <form class="modal-card support-modal" method="dialog">
+        <p class="eyebrow">support first</p>
+        <h3>You deserve real support right now.</h3>
+        <p>
+          Someone was worried about your whisper. If you might hurt yourself or feel unsafe, please reach out to a trusted person or a crisis support line near you.
+        </p>
+        <p class="support-resources hidden" id="supportResources">
+          If you are in immediate danger, contact local emergency services now. If you can, reach out to someone nearby and tell them you need support tonight.
+        </p>
+        <div class="modal-actions">
+          <button class="secondary-button" value="cancel" type="submit">I understand</button>
+          <button class="primary-button" id="showSupportButton" value="default" type="button">Show support resources</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="reportDialog">
+      <form class="modal-card report-modal" id="reportForm" method="dialog">
+        <p class="eyebrow">report</p>
+        <h3>Why are you reporting this?</h3>
+        <p>Help us keep Laýa gentle and safe.</p>
+
+        <fieldset class="report-options" id="reportOptions">
+          <label><input type="radio" name="reportReason" value="Self-harm or suicide concern" checked /> Self-harm or suicide concern</label>
+          <label><input type="radio" name="reportReason" value="Harassment or cruelty" /> Harassment or cruelty</label>
+          <label><input type="radio" name="reportReason" value="Personal information shared" /> Personal information shared</label>
+          <label><input type="radio" name="reportReason" value="Dating / chasing / asking to connect" /> Dating / chasing / asking to connect</label>
+          <label><input type="radio" name="reportReason" value="Sexual content" /> Sexual content</label>
+          <label><input type="radio" name="reportReason" value="Spam or unsafe content" /> Spam or unsafe content</label>
+          <label><input type="radio" name="reportReason" value="Other" /> Other</label>
+        </fieldset>
+
+        <label class="reply-field" for="reportContext">
+          <span>Add a little context, if you want…</span>
+          <textarea id="reportContext" rows="2" maxlength="220"></textarea>
+        </label>
+
+        <p class="reply-success hidden" id="reportSuccess">Thank you. We’ll hold this carefully.</p>
+        <div class="modal-actions">
+          <button class="secondary-button" value="cancel" type="submit">Cancel</button>
+          <button class="primary-button" id="submitReportButton" type="submit">Submit report</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="groundingDialog">
+      <form class="modal-card grounding-modal" method="dialog">
+        <div class="grounding-orb" aria-hidden="true"></div>
+        <p class="eyebrow" id="transitionEyebrow">your whisper is here</p>
+        <h3 id="transitionTitle">Take one slow breath.</h3>
+        <p id="transitionBody">
+          You let something heavy leave your chest for a moment. You do not have to solve it right now.
+        </p>
+        <p class="grounding-line" id="transitionLine">Feel your feet. Unclench your jaw. Let the room hold you softly.</p>
+        <button class="primary-button full" id="groundingContinueButton" value="default" type="button">Enter the room</button>
+        <div class="modal-actions hidden" id="capacityActions">
+          <button class="secondary-button" id="capacityNoneButton" type="button">Not right now</button>
+          <button class="primary-button" id="capacityYesButton" type="button">I can hold a little</button>
+        </div>
+      </form>
+    </dialog>
+
+    <template id="whisperTemplate">
+      <article class="whisper-card">
+        <div class="card-head">
+          <span class="mood-tag"></span>
+          <span class="time-note"></span>
+        </div>
+        <p class="whisper-content"></p>
+        <audio class="voice-player hidden" controls></audio>
+        <div class="card-meta">
+          <span class="response-count"></span>
+          <span>This whisper fades after 7 days.</span>
+        </div>
+        <div class="kindness-received"></div>
+        <div class="card-actions">
+          <button class="secondary-button kindness-action" type="button">Send gently</button>
+          <button class="text-button report-action" type="button">Report</button>
+          <button class="text-button delete-action hidden" type="button">Delete</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
