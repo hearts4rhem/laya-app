@@ -892,6 +892,7 @@ function fromDbWhisper(row) {
 
 function toDbWhisper(whisper) {
   return {
+    id: whisper.id,
     content: whisper.content || null,
     audio_url: whisper.audioUrl || null,
     language: whisper.language,
@@ -927,11 +928,6 @@ function toDbReply(reply) {
     whisper_id: reply.whisperId,
     reply_tone: reply.replyTone,
     message: reply.message,
-    created_at: new Date(reply.createdAt).toISOString(),
-    flagged: Boolean(reply.flagged),
-    blocked_reason: reply.blockedReason || "",
-    device_id: deviceId,
-    reaction_count: Number(reply.reactionCount || 0),
   };
 }
 
@@ -951,8 +947,6 @@ function toDbReport(report) {
     whisper_id: report.whisperId,
     reason: report.reason,
     optional_context: report.optionalContext || "",
-    created_at: new Date(report.createdAt).toISOString(),
-    device_id: deviceId,
   };
 }
 
@@ -1270,7 +1264,7 @@ async function postWhisper(whisper) {
 
       const payload = toDbWhisper(whisper);
       console.error("Laýa debug: whisper insert payload", payload);
-      const { data, error } = await supabaseClient.from("whispers").insert(payload);
+      const { data, error } = await supabaseClient.from("whispers").insert(payload).select("id,created_at,expires_at").single();
       console.error("Laýa debug: whisper insert response data", data);
       if (error) throw error;
       if (data?.id) whisper.id = data.id;
@@ -1617,11 +1611,12 @@ function renderCards(container, whispers, options = {}) {
 function render() {
   pruneExpired();
   const whispers = [...state.whispers].sort((a, b) => b.createdAt - a.createdAt);
+  const myWhispers = whispers.filter((whisper) => whisper.ownerId === deviceId || state.createdWhispers?.[whisper.id]);
   renderBubbles(prioritizedWhispers());
   renderKindnessJar();
-  renderCards(els.myFeed, whispers.filter((whisper) => whisper.ownerId === deviceId), {
+  renderCards(els.myFeed, myWhispers, {
     mine: true,
-    empty: "You have not sent a whisper from this device yet.",
+    empty: "No whispers saved on this device yet.",
   });
 }
 
@@ -1794,7 +1789,7 @@ async function sendKindness(message, validation) {
         .eq("id", activeWhisperId);
       if (countError) throw countError;
     } catch (error) {
-      showReplyWarning("Laýa could not send this kindness yet. Please try again in a moment.");
+      showReplyWarning(`Laýa could not send this kindness yet. ${debugErrorMessage(error)}`);
       console.error("Supabase kindness insert failed", error);
       return;
     }
@@ -1855,7 +1850,7 @@ async function submitReport() {
         .eq("id", whisper.id);
       if (whisperError) throw whisperError;
     } catch (error) {
-      els.reportSuccess.textContent = "Laýa could not save this report yet. Please try again in a moment.";
+      els.reportSuccess.textContent = `Laýa could not save this report yet. ${debugErrorMessage(error)}`;
       els.reportSuccess.classList.remove("hidden");
       console.error("Supabase report insert failed", error);
       return;
@@ -1883,10 +1878,10 @@ async function deleteWhisper(whisperId) {
     const { error } = await supabaseClient
       .from("whispers")
       .update({ hidden: true })
-      .eq("id", whisperId)
-      .eq("device_id", deviceId);
+      .eq("id", whisperId);
     if (error) {
       console.error("Supabase whisper hide failed", error);
+      alert(`Laýa could not delete this whisper yet. ${debugErrorMessage(error)}`);
       return;
     }
   }

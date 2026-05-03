@@ -36,6 +36,11 @@ body {
   animation: ambient-shift 28s ease-in-out infinite alternate;
 }
 
+html {
+  min-height: 100%;
+  background: #f7f1fb;
+}
+
 @keyframes ambient-shift {
   0% { background-position: 0% 0%; }
   100% { background-position: 80% 60%; }
@@ -61,6 +66,9 @@ select:focus-visible {
 .app {
   min-height: 100vh;
   padding: 16px 16px 96px;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
 }
 
 .app-header {
@@ -1623,7 +1631,12 @@ button:disabled {
 
 @media (min-width: 760px) {
   .app {
-    padding-top: 24px;
+    padding: 24px clamp(24px, 6vw, 72px) 112px;
+  }
+
+  .app-header {
+    width: min(100%, 880px);
+    margin: 0 auto;
   }
 
   .landing-screen {
