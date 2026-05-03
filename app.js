@@ -569,6 +569,7 @@ let transitionMode = "";
 let transitionCategory = "";
 let transitionInProgress = false;
 let receiveTransitionTimer = null;
+let currentRoute = "home";
 let userState = loadUserState();
 
 const els = {
@@ -689,6 +690,7 @@ function loadLocalTracking() {
       reported: {},
       seen: {},
       reactions: {},
+      sentReplies: {},
     };
   }
   try {
@@ -699,6 +701,7 @@ function loadLocalTracking() {
       reported: parsed.reported || {},
       seen: parsed.seen || {},
       reactions: parsed.reactions || {},
+      sentReplies: parsed.sentReplies || {},
     };
   } catch {
     return {
@@ -707,6 +710,7 @@ function loadLocalTracking() {
       reported: {},
       seen: {},
       reactions: {},
+      sentReplies: {},
     };
   }
 }
@@ -718,6 +722,7 @@ function saveLocalTracking() {
     reported: state.reported || {},
     seen: state.seen || {},
     reactions: state.reactions || {},
+    sentReplies: state.sentReplies || {},
   }));
 }
 
@@ -730,6 +735,7 @@ function normalizeState(nextState) {
   nextState.reported ||= {};
   nextState.seen ||= {};
   nextState.reactions ||= {};
+  nextState.sentReplies ||= {};
   nextState.whispers = nextState.whispers.map((whisper) => ({
     ...whisper,
     language: whisper.language || "English",
@@ -920,7 +926,7 @@ function fromDbReply(row) {
     createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
     flagged: Boolean(row.flagged),
     blockedReason: row.blocked_reason || "",
-    ownerId: row.device_id || "remote",
+    ownerId: row.device_id || (state.sentReplies?.[row.id] ? deviceId : "remote"),
     reactionCount: Number(row.reaction_count || 0),
   };
 }
@@ -931,6 +937,7 @@ function toDbReply(reply) {
     whisper_id: reply.whisperId,
     reply_tone: reply.replyTone,
     message: reply.message,
+    device_id: reply.ownerId || deviceId,
   };
 }
 
@@ -1061,6 +1068,7 @@ function setRoute(route) {
   if (route === "listen" && userState.capacityLevel === "none") {
     route = "rest";
   }
+  currentRoute = route;
   const screenId = `${route}Screen`;
   els.screens.forEach((screen) => screen.classList.toggle("active", screen.id === screenId));
   els.navButtons.forEach((button) => button.classList.toggle("active", button.dataset.route === route));
@@ -1562,11 +1570,13 @@ function renderCards(container, whispers, options = {}) {
     const card = els.whisperTemplate.content.firstElementChild.cloneNode(true);
     card.querySelector(".mood-tag").textContent = whisper.mood;
     card.querySelector(".time-note").textContent = relativeTime(whisper.createdAt);
-    card.querySelector(".whisper-content").textContent = whisper.content;
+    card.querySelector(".whisper-content").textContent = whisper.audioUrl
+      ? "Voice whisper"
+      : whisper.content || "This whisper is quiet now.";
     card.querySelector(".response-count").textContent = `${heldCopy(responses.length)} · ${intensityLabels[whisper.intensity]} (${whisper.intensity}/5)`;
 
     const player = card.querySelector(".voice-player");
-    if (whisper.type === "voice" && whisper.audioUrl) {
+    if (whisper.audioUrl) {
       player.src = whisper.audioUrl;
       player.classList.remove("hidden");
     } else if (whisper.type === "voice") {
@@ -1702,12 +1712,17 @@ function openKindness(whisperId) {
   els.kindnessMood.textContent = whisper.mood;
   els.kindnessTitle.textContent = "Someone left this here.";
   els.intensityLabel.textContent = `${intensityLabels[whisper.intensity] || "Present"} · intensity ${whisper.intensity}/5`;
-  els.kindnessContent.textContent = whisper.type === "voice" ? "A voice whisper is waiting here." : whisper.content;
+  const hasVoice = Boolean(whisper.audioUrl);
+  els.kindnessContent.textContent = hasVoice
+    ? "Tap play to listen to this voice whisper."
+    : whisper.content || "This whisper is quiet now.";
   els.kindnessAudio.classList.add("hidden");
   els.kindnessAudio.removeAttribute("src");
-  if (whisper.type === "voice" && whisper.audioUrl) {
+  els.kindnessAudio.load();
+  if (hasVoice) {
     els.kindnessAudio.src = whisper.audioUrl;
     els.kindnessAudio.classList.remove("hidden");
+    els.kindnessAudio.load();
   }
   els.replyGuidance.textContent = replyGuidance[activeReplyContext];
 
@@ -1820,7 +1835,13 @@ async function sendKindness(message, validation) {
 
   if (supabaseClient) {
     try {
-      const { error: replyError } = await supabaseClient.from("kindness_replies").insert(toDbReply(reply));
+      const replyPayload = toDbReply(reply);
+      let { error: replyError } = await supabaseClient.from("kindness_replies").insert(replyPayload);
+      if (replyError && /device_id|schema cache/i.test(debugErrorMessage(replyError))) {
+        console.error("Supabase kindness insert retrying without device_id", replyError);
+        const { device_id, ...fallbackPayload } = replyPayload;
+        ({ error: replyError } = await supabaseClient.from("kindness_replies").insert(fallbackPayload));
+      }
       if (replyError) throw replyError;
       const { error: countError } = await supabaseClient
         .from("whispers")
@@ -1835,6 +1856,8 @@ async function sendKindness(message, validation) {
   }
 
   state.responses.push(reply);
+  state.sentReplies ||= {};
+  state.sentReplies[reply.id] = true;
   if (whisper) {
     whisper.kindnessCount = nextKindnessCount;
     whisper.responseCount = whisper.kindnessCount;
@@ -2126,6 +2149,7 @@ function bindEvents() {
       reported: {},
       seen: {},
       reactions: {},
+      sentReplies: {},
     });
     userState = { lastPostedMood: "", capacityLevel: "full" };
     saveUserState();
@@ -2153,6 +2177,12 @@ async function init() {
     render();
   }
   setRoute("home");
+  if (supabaseClient) {
+    window.setInterval(() => {
+      if (!["listen", "mine"].includes(currentRoute)) return;
+      refreshFromSupabase().catch((error) => console.error("Supabase background refresh failed", error));
+    }, 12000);
+  }
 }
 
 init();
