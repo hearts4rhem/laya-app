@@ -465,6 +465,7 @@ const starterState = {
   reported: {},
   seen: {},
   reactions: {},
+  kindnessReactions: [],
 };
 
 starterState.responses = [
@@ -677,6 +678,7 @@ function loadState() {
     whispers: [],
     responses: [],
     reports: [],
+    kindnessReactions: [],
     ...localTracking,
   });
 }
@@ -730,6 +732,7 @@ function normalizeState(nextState) {
   nextState.whispers ||= [];
   nextState.responses ||= [];
   nextState.reports ||= [];
+  nextState.kindnessReactions ||= [];
   nextState.createdWhispers ||= {};
   nextState.responded ||= {};
   nextState.reported ||= {};
@@ -754,6 +757,12 @@ function normalizeState(nextState) {
     ...response,
     ownerId: response.ownerId || "demo",
     reactionCount: Number(response.reactionCount || 0),
+  }));
+  nextState.kindnessReactions = nextState.kindnessReactions.map((reaction) => ({
+    ...reaction,
+    replyId: reaction.replyId || reaction.reply_id,
+    ownerId: reaction.ownerId || reaction.device_id || "remote",
+    createdAt: reaction.createdAt || (reaction.created_at ? new Date(reaction.created_at).getTime() : Date.now()),
   }));
   return nextState;
 }
@@ -960,6 +969,25 @@ function toDbReport(report) {
   };
 }
 
+function fromDbReaction(row) {
+  return {
+    id: row.id,
+    replyId: row.reply_id,
+    reaction: row.reaction || "💜",
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+    ownerId: row.device_id || "remote",
+  };
+}
+
+function toDbReaction(reaction) {
+  return {
+    id: reaction.id,
+    reply_id: reaction.replyId,
+    reaction: reaction.reaction,
+    device_id: reaction.ownerId || deviceId,
+  };
+}
+
 async function refreshFromSupabase() {
   if (!supabaseClient) {
     render();
@@ -967,7 +995,7 @@ async function refreshFromSupabase() {
   }
 
   const nowIso = new Date().toISOString();
-  const [whisperResult, replyResult, reportResult] = await Promise.all([
+  const [whisperResult, replyResult, reportResult, reactionResult] = await Promise.all([
     supabaseClient
       .from("whispers")
       .select("*")
@@ -982,18 +1010,25 @@ async function refreshFromSupabase() {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(100),
+    supabaseClient
+      .from("kindness_reactions")
+      .select("*")
+      .order("created_at", { ascending: true }),
   ]);
 
   if (whisperResult.error) throw whisperResult.error;
   if (replyResult.error) throw replyResult.error;
   if (reportResult.error) console.error("Supabase report fetch failed", reportResult.error);
+  if (reactionResult.error) console.error("Supabase reaction fetch failed", reactionResult.error);
 
   const localTracking = loadLocalTracking();
   const activeIds = new Set((whisperResult.data || []).map((whisper) => whisper.id));
+  const activeReplyIds = new Set((replyResult.data || []).map((reply) => reply.id));
   state = normalizeState({
     whispers: (whisperResult.data || []).map(fromDbWhisper),
     responses: (replyResult.data || []).filter((reply) => activeIds.has(reply.whisper_id)).map(fromDbReply),
     reports: (reportResult.data || []).map(fromDbReport),
+    kindnessReactions: (reactionResult.data || []).filter((reaction) => activeReplyIds.has(reaction.reply_id)).map(fromDbReaction),
     ...localTracking,
   });
   render();
@@ -1493,6 +1528,54 @@ function heldCopy(count) {
   return `${count} ${count === 1 ? "person" : "people"} held this`;
 }
 
+async function saveKindnessReaction(responseId, reactionSymbol) {
+  const response = state.responses.find((item) => item.id === responseId);
+  if (!response) return { ok: false };
+
+  response.reactionCount = Number(response.reactionCount || 0) + 1;
+  const reaction = {
+    id: crypto.randomUUID(),
+    replyId: responseId,
+    reaction: reactionSymbol,
+    createdAt: Date.now(),
+    ownerId: deviceId,
+  };
+  state.kindnessReactions ||= [];
+  state.kindnessReactions.push(reaction);
+
+  if (!supabaseClient) return { ok: true };
+
+  let reactionError = null;
+  let synced = false;
+  const { error: insertError } = await supabaseClient
+    .from("kindness_reactions")
+    .insert(toDbReaction(reaction));
+  if (insertError) {
+    reactionError = insertError;
+    console.error("Supabase kindness reaction insert failed", insertError);
+  } else {
+    synced = true;
+  }
+
+  const { error: countError } = await supabaseClient
+    .from("kindness_replies")
+    .update({ reaction_count: response.reactionCount })
+    .eq("id", responseId);
+  if (countError) {
+    reactionError ||= countError;
+    console.error("Supabase reaction count update failed", countError);
+  } else {
+    synced = true;
+  }
+
+  return { ok: synced, error: reactionError };
+}
+
+function reactionCountForReply(response) {
+  const syncedCount = state.kindnessReactions.filter((reaction) => reaction.replyId === response.id).length;
+  return Math.max(Number(response.reactionCount || 0), syncedCount);
+}
+
 function revealKindness(card, kindness, whisperId) {
   if (kindness.classList.contains("expanded")) return;
   kindness.classList.add("expanded");
@@ -1521,15 +1604,8 @@ function revealKindness(card, kindness, whisperId) {
       if (!responseId || state.reactions?.[responseId]) return;
       state.reactions ||= {};
       state.reactions[responseId] = button.dataset.reaction;
-      const response = state.responses.find((item) => item.id === responseId);
-      if (response) response.reactionCount = Number(response.reactionCount || 0) + 1;
-      if (supabaseClient && response) {
-        const { error } = await supabaseClient
-          .from("kindness_replies")
-          .update({ reaction_count: response.reactionCount })
-          .eq("id", responseId);
-        if (error) console.error("Supabase reaction update failed", error);
-      }
+      const result = await saveKindnessReaction(responseId, button.dataset.reaction);
+      if (!result.ok) alert(`Laýa saved this reaction here, but could not sync it to the kindness jar yet. ${debugErrorMessage(result.error)}`);
       button.classList.add("reacted");
       button.closest(".reply-reaction-row")?.querySelectorAll(".reaction-button").forEach((item) => {
         if (item !== button) item.disabled = true;
@@ -1543,7 +1619,7 @@ function revealKindness(card, kindness, whisperId) {
 function renderKindnessJar() {
   if (!els.kindnessJar) return;
   const sentReplies = state.responses.filter((response) => response.ownerId === deviceId);
-  const reactionTotal = sentReplies.reduce((sum, response) => sum + Number(response.reactionCount || 0), 0);
+  const reactionTotal = sentReplies.reduce((sum, response) => sum + reactionCountForReply(response), 0);
   const hasNewWarmth = reactionTotal > 0;
   const jarFill = reactionTotal ? Math.min(100, Math.round((reactionTotal / 6) * 100)) : 8;
   els.kindnessJar.innerHTML = `
