@@ -1,4 +1,4 @@
-const SUPABASE_URL = "https://ofwkecklhqtxwlpmnca.supabase.co";
+const SUPABASE_URL = "https://ofwkecklhqtxwlpmnxca.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_8MEOwWdbd9fK6q5JdmTapw_S50-_ILo";
 const AUDIO_BUCKET = "whisper-audio";
 const LOCAL_TRACKING_KEY = "laya-local-tracking";
@@ -6,6 +6,7 @@ const DEVICE_KEY = "whisper-room-device";
 const USER_STATE_KEY = "whisper-room-user-state";
 const DAY = 24 * 60 * 60 * 1000;
 const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) || null;
+console.error("Laýa debug: build 20260503-supabase-url-fixed loaded");
 
 const moodGroups = {
   "Heavy feelings": ["Lonely", "Overwhelmed", "Heartbroken", "Anxious", "Angry", "Tired", "Confused"],
@@ -891,14 +892,11 @@ function fromDbWhisper(row) {
 
 function toDbWhisper(whisper) {
   return {
-    id: whisper.id,
-    type: whisper.type,
-    content: whisper.content,
-    audio_url: whisper.audioUrl || "",
+    content: whisper.content || null,
+    audio_url: whisper.audioUrl || null,
     language: whisper.language,
     mood: whisper.mood,
     intensity: whisper.intensity,
-    created_at: new Date(whisper.createdAt).toISOString(),
     expires_at: new Date(whisper.expiresAt).toISOString(),
     kindness_count: activeKindnessCount(whisper),
     reported_count: Number(whisper.reportedCount || 0),
@@ -906,7 +904,6 @@ function toDbWhisper(whisper) {
     hidden: Boolean(whisper.hidden),
     report_reasons: whisper.reportReasons || [],
     detected_flags: whisper.detectedFlags || [],
-    device_id: deviceId,
   };
 }
 
@@ -1143,10 +1140,9 @@ function hasCrisisLanguage(text) {
 function createWhisper() {
   const text = els.whisperText.value.trim();
   const hasVoice = Boolean(draftAudioUrl);
-  const content = text || (hasVoice ? "Anonymous voice whisper" : "");
   const detectedFlags = detectSafetyFlags(text);
 
-  if (!content) return { error: "Write a whisper or record a short voice note first." };
+  if (!text && !hasVoice) return { error: "Write a whisper or record a short voice note first." };
 
   const blockReason = findBlockReason(text);
   if (blockReason) return { error: blockReason };
@@ -1155,7 +1151,7 @@ function createWhisper() {
     whisper: {
       id: crypto.randomUUID(),
       type: hasVoice ? "voice" : "text",
-      content,
+      content: text || null,
       audioUrl: hasVoice ? draftAudioUrl : "",
       language: els.whisperLanguage?.value || "English",
       mood: selectedMood,
@@ -1185,14 +1181,104 @@ function hideNotice() {
   els.blockNotice.classList.add("hidden");
 }
 
+function supabaseSetupHint(error) {
+  const message = String(error?.message || error?.error_description || error?.details || "");
+  if (/failed to fetch|networkerror|load failed/i.test(message)) {
+    return " Supabase setup note: open Laýa from http://localhost instead of the file link so the browser can reach Supabase.";
+  }
+  if (/relation .*whispers|could not find the table|schema cache|does not exist/i.test(message)) {
+    return " Supabase setup note: the whispers table may not exist yet.";
+  }
+  if (/bucket|storage|object/i.test(message)) {
+    return " Supabase setup note: the whisper-audio bucket or its upload policy may need setup.";
+  }
+  if (/row-level security|violates row-level security|permission denied|policy/i.test(message)) {
+    return " Supabase setup note: a table policy may be blocking this save.";
+  }
+  return message ? ` Supabase said: ${message}` : "";
+}
+
+function debugErrorMessage(error) {
+  if (!error) return "Unknown Supabase error";
+  if (error.message) return error.message;
+  if (error.error_description) return error.error_description;
+  if (error.details) return error.details;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+async function debugSupabaseNetwork() {
+  if (window.location.protocol === "file:") {
+    const fileError = new Error("Laýa is open from a file link. Open it from http://localhost so the browser can call Supabase.");
+    console.error("Laýa debug: local file origin blocked", window.location.href);
+    return { ok: false, networkError: fileError };
+  }
+
+  const endpoint = `${SUPABASE_URL}/rest/v1/whispers?select=id&limit=1`;
+  console.error("Laýa debug: Supabase URL", SUPABASE_URL);
+  console.error("Laýa debug: Supabase anon key prefix", SUPABASE_ANON_KEY.slice(0, 14));
+  try {
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+    });
+    const body = await response.text();
+    console.error("Laýa debug: Supabase REST status", response.status, response.statusText);
+    console.error("Laýa debug: Supabase REST body", body);
+    return { ok: response.ok, status: response.status, body };
+  } catch (error) {
+    console.error("Laýa debug: Supabase REST network error", error);
+    return { ok: false, networkError: error };
+  }
+}
+
 async function postWhisper(whisper) {
+  console.error("Laýa debug: Supabase client exists", Boolean(supabaseClient));
+  if (!supabaseClient) {
+    showNotice("Debug error: Supabase client is missing. Check that the Supabase script loaded before app.js.");
+    return;
+  }
+
   if (supabaseClient) {
+    let audioUploadError = null;
     try {
-      whisper.audioUrl = await uploadVoiceAudio(whisper);
-      const { error } = await supabaseClient.from("whispers").insert(toDbWhisper(whisper));
+      const networkCheck = await debugSupabaseNetwork();
+      if (networkCheck.networkError) {
+        throw new Error(
+          `Cannot reach Supabase project at ${SUPABASE_URL}. Check that the Project URL is exact and the project is active. Browser error: ${debugErrorMessage(networkCheck.networkError)}`
+        );
+      }
+
+      try {
+        whisper.audioUrl = await uploadVoiceAudio(whisper);
+      } catch (error) {
+        audioUploadError = error;
+        console.error("Laýa debug: audio upload error", error);
+        if (whisper.content) {
+          whisper.audioUrl = "";
+          whisper.type = "text";
+        } else {
+          throw error;
+        }
+      }
+
+      const payload = toDbWhisper(whisper);
+      console.error("Laýa debug: whisper insert payload", payload);
+      const { data, error } = await supabaseClient.from("whispers").insert(payload);
+      console.error("Laýa debug: whisper insert response data", data);
       if (error) throw error;
+      if (data?.id) whisper.id = data.id;
+      if (data?.created_at) whisper.createdAt = new Date(data.created_at).getTime();
+      if (audioUploadError) console.error("Laýa debug: saved as text-only after audio upload failed", audioUploadError);
     } catch (error) {
-      showNotice("Laýa could not save this whisper yet. Please try again in a moment.");
+      console.error("Laýa debug: whisper insert error", error);
+      showNotice(`Debug error: ${debugErrorMessage(error)}`);
       console.error("Supabase whisper insert failed", error);
       return;
     }
