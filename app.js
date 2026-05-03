@@ -85,7 +85,8 @@ const replyGuidance = {
   heavy: "No advice. No fixing. Just presence.",
   tender: "No advice. No fixing. Just presence.",
 };
-const kindnessReactions = ["💜", "💟"];
+const kindnessReactions = ["💜"];
+const kindnessJarCapacity = 100;
 const safetyPatterns = {
   crisis: [
     "suicide",
@@ -232,233 +233,7 @@ const crisisPatterns = [
 ];
 
 const starterState = {
-  whispers: [
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I keep pretending I am fine because explaining why I am tired feels even more tiring.",
-      audioUrl: "",
-      mood: "Tired",
-      createdAt: Date.now() - 1000 * 60 * 18,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 18,
-      intensity: 3,
-      kindnessCount: 2,
-      responseCount: 2,
-      reportedCount: 0,
-      hidden: false,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I miss being someone's first thought. I know I should be okay alone, but tonight feels wide and quiet.",
-      audioUrl: "",
-      mood: "Lonely",
-      createdAt: Date.now() - 1000 * 60 * 77,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 77,
-      intensity: 4,
-      kindnessCount: 0,
-      responseCount: 0,
-      reportedCount: 0,
-      hidden: false,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "voice",
-      content: "Anonymous voice whisper",
-      audioUrl: makeDemoAudioUrl(176, 1.6),
-      mood: "Overwhelmed",
-      createdAt: Date.now() - 1000 * 60 * 150,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 150,
-      intensity: 5,
-      kindnessCount: 1,
-      responseCount: 1,
-      reportedCount: 0,
-      hidden: false,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I feel anxious about tomorrow, even though nothing has happened yet.",
-      audioUrl: "",
-      mood: "Anxious",
-      createdAt: Date.now() - 1000 * 60 * 9,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 9,
-      responseCount: 0,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I am angry that I always have to be the understanding one.",
-      audioUrl: "",
-      mood: "Angry",
-      createdAt: Date.now() - 1000 * 60 * 34,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 34,
-      responseCount: 1,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "My heart still reaches for someone who already left.",
-      audioUrl: "",
-      mood: "Heartbroken",
-      createdAt: Date.now() - 1000 * 60 * 48,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 48,
-      responseCount: 0,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I do not know what I feel. Everything is foggy and loud at the same time.",
-      audioUrl: "",
-      mood: "Confused",
-      createdAt: Date.now() - 1000 * 60 * 112,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 112,
-      responseCount: 2,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I wish someone noticed how much effort it takes me to be okay.",
-      audioUrl: "",
-      mood: "Lonely",
-      createdAt: Date.now() - 1000 * 60 * 210,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 210,
-      responseCount: 0,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I am proud of myself for making it through today, even if it was messy.",
-      audioUrl: "",
-      mood: "Tired",
-      createdAt: Date.now() - 1000 * 60 * 260,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 260,
-      responseCount: 1,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "voice",
-      content: "Anonymous voice whisper",
-      audioUrl: makeDemoAudioUrl(220, 1.35),
-      mood: "Heartbroken",
-      createdAt: Date.now() - 1000 * 60 * 24,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 24,
-      responseCount: 1,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "voice",
-      content: "Anonymous voice whisper",
-      audioUrl: makeDemoAudioUrl(146, 1.85),
-      mood: "Lonely",
-      createdAt: Date.now() - 1000 * 60 * 62,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 62,
-      responseCount: 0,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "voice",
-      content: "Anonymous voice whisper",
-      audioUrl: makeDemoAudioUrl(196, 1.5),
-      mood: "Anxious",
-      createdAt: Date.now() - 1000 * 60 * 138,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 138,
-      responseCount: 2,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "voice",
-      content: "Anonymous voice whisper",
-      audioUrl: makeDemoAudioUrl(165, 1.7),
-      mood: "Confused",
-      createdAt: Date.now() - 1000 * 60 * 310,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 310,
-      responseCount: 0,
-      reportedCount: 0,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "For the first time in a while, I think tomorrow might be kind to me.",
-      audioUrl: "",
-      mood: "Hopeful",
-      intensity: 2,
-      createdAt: Date.now() - 1000 * 60 * 44,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 44,
-      kindnessCount: 0,
-      responseCount: 0,
-      reportedCount: 0,
-      hidden: false,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I am grateful for one person who checked on me today.",
-      audioUrl: "",
-      mood: "Grateful",
-      intensity: 3,
-      createdAt: Date.now() - 1000 * 60 * 90,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 90,
-      kindnessCount: 1,
-      responseCount: 1,
-      reportedCount: 0,
-      hidden: false,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I finally cried and somehow my body feels lighter.",
-      audioUrl: "",
-      mood: "Relieved",
-      intensity: 4,
-      createdAt: Date.now() - 1000 * 60 * 126,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 126,
-      kindnessCount: 0,
-      responseCount: 0,
-      reportedCount: 0,
-      hidden: false,
-      ownerId: "demo",
-    },
-    {
-      id: crypto.randomUUID(),
-      type: "text",
-      content: "I did something hard today, and I want to remember that I showed up.",
-      audioUrl: "",
-      mood: "Proud",
-      intensity: 3,
-      createdAt: Date.now() - 1000 * 60 * 250,
-      expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 250,
-      kindnessCount: 0,
-      responseCount: 0,
-      reportedCount: 0,
-      hidden: false,
-      ownerId: "demo",
-    },
-  ],
+  whispers: [],
   responses: [],
   reports: [],
   responded: {},
@@ -467,89 +242,6 @@ const starterState = {
   reactions: {},
   kindnessReactions: [],
 };
-
-starterState.responses = [
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[0].id,
-    replyTone: "Hold space",
-    message: "I hear you.",
-    createdAt: Date.now() - 1000 * 60 * 12,
-    flagged: false,
-  },
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[0].id,
-    replyTone: "Encourage gently",
-    message: "One small breath at a time.",
-    createdAt: Date.now() - 1000 * 60 * 8,
-    flagged: false,
-  },
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[2].id,
-    replyTone: "Acknowledge the pain",
-    message: "That sounds heavy.",
-    createdAt: Date.now() - 1000 * 60 * 42,
-    flagged: false,
-  },
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[4].id,
-    replyTone: "Hold space",
-    message: "I hear the frustration in that.",
-    createdAt: Date.now() - 1000 * 60 * 22,
-    flagged: false,
-  },
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[6].id,
-    replyTone: "Hold space",
-    message: "Foggy feelings still deserve space.",
-    createdAt: Date.now() - 1000 * 60 * 65,
-    flagged: false,
-  },
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[6].id,
-    replyTone: "Encourage gently",
-    message: "One small breath at a time.",
-    createdAt: Date.now() - 1000 * 60 * 58,
-    flagged: false,
-  },
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[8].id,
-    replyTone: "Send strength",
-    message: "Messy still counts. You made it.",
-    createdAt: Date.now() - 1000 * 60 * 180,
-    flagged: false,
-  },
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[9].id,
-    replyTone: "Hold space",
-    message: "I am holding this gently with you.",
-    createdAt: Date.now() - 1000 * 60 * 15,
-    flagged: false,
-  },
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[11].id,
-    replyTone: "Remind them they're not alone",
-    message: "You are not alone in this moment.",
-    createdAt: Date.now() - 1000 * 60 * 88,
-    flagged: false,
-  },
-  {
-    id: crypto.randomUUID(),
-    whisperId: starterState.whispers[11].id,
-    replyTone: "Encourage gently",
-    message: "One small breath at a time.",
-    createdAt: Date.now() - 1000 * 60 * 76,
-    flagged: false,
-  },
-];
 
 const deviceId = getDeviceId();
 
@@ -768,114 +460,7 @@ function normalizeState(nextState) {
 }
 
 function createDemoState() {
-  const nextState = structuredClone(starterState);
-  const myFirstWhisper = {
-    id: crypto.randomUUID(),
-    type: "text",
-    content: "I keep telling myself I am okay, but I think I just want someone to know I am trying.",
-    audioUrl: "",
-    mood: "Tired",
-    createdAt: Date.now() - 1000 * 60 * 27,
-    expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 27,
-    responseCount: 3,
-    reportedCount: 0,
-    ownerId: deviceId,
-  };
-  const mySecondWhisper = {
-    id: crypto.randomUUID(),
-    type: "text",
-    content: "Tonight feels lonely in a way I cannot explain to people who know me.",
-    audioUrl: "",
-    mood: "Lonely",
-    createdAt: Date.now() - 1000 * 60 * 96,
-    expiresAt: Date.now() + 7 * DAY - 1000 * 60 * 96,
-    responseCount: 2,
-    reportedCount: 0,
-    ownerId: deviceId,
-  };
-
-  nextState.whispers.unshift(mySecondWhisper);
-  nextState.whispers.unshift(myFirstWhisper);
-  nextState.responses.push(
-    {
-      id: crypto.randomUUID(),
-      whisperId: myFirstWhisper.id,
-      replyTone: "Hold space",
-      message: "I hear you. Trying still counts, even when it feels quiet.",
-      createdAt: Date.now() - 1000 * 60 * 18,
-      flagged: false,
-      blockedReason: "",
-      ownerId: "demo",
-      reactionCount: 0,
-    },
-    {
-      id: crypto.randomUUID(),
-      whisperId: myFirstWhisper.id,
-      replyTone: "Encourage gently",
-      message: "One small breath at a time.",
-      createdAt: Date.now() - 1000 * 60 * 11,
-      flagged: false,
-      blockedReason: "",
-      ownerId: "demo",
-      reactionCount: 0,
-    },
-    {
-      id: crypto.randomUUID(),
-      whisperId: myFirstWhisper.id,
-      replyTone: "Send strength",
-      message: "You are still here. That matters.",
-      createdAt: Date.now() - 1000 * 60 * 6,
-      flagged: false,
-      blockedReason: "",
-      ownerId: "demo",
-      reactionCount: 0,
-    },
-    {
-      id: crypto.randomUUID(),
-      whisperId: mySecondWhisper.id,
-      replyTone: "Remind them they're not alone",
-      message: "You are not alone in this moment.",
-      createdAt: Date.now() - 1000 * 60 * 62,
-      flagged: false,
-      blockedReason: "",
-      ownerId: "demo",
-      reactionCount: 0,
-    },
-    {
-      id: crypto.randomUUID(),
-      whisperId: mySecondWhisper.id,
-      replyTone: "Acknowledge the pain",
-      message: "That kind of loneliness can feel so heavy.",
-      createdAt: Date.now() - 1000 * 60 * 44,
-      flagged: false,
-      blockedReason: "",
-      ownerId: "demo",
-      reactionCount: 0,
-    },
-    {
-      id: crypto.randomUUID(),
-      whisperId: nextState.whispers[3].id,
-      replyTone: "Hold space",
-      message: "I am holding this gently with you.",
-      createdAt: Date.now() - 1000 * 60 * 33,
-      flagged: false,
-      blockedReason: "",
-      ownerId: deviceId,
-      reactionCount: 2,
-    },
-    {
-      id: crypto.randomUUID(),
-      whisperId: nextState.whispers[5].id,
-      replyTone: "Encourage gently",
-      message: "May this soft moment stay with you.",
-      createdAt: Date.now() - 1000 * 60 * 144,
-      flagged: false,
-      blockedReason: "",
-      ownerId: deviceId,
-      reactionCount: 1,
-    }
-  );
-  return normalizeState(nextState);
+  return normalizeState(structuredClone(starterState));
 }
 
 function saveState() {
@@ -1621,7 +1206,7 @@ function renderKindnessJar() {
   const sentReplies = state.responses.filter((response) => response.ownerId === deviceId);
   const reactionTotal = sentReplies.reduce((sum, response) => sum + reactionCountForReply(response), 0);
   const hasNewWarmth = reactionTotal > 0;
-  const jarFill = reactionTotal ? Math.min(100, Math.round((reactionTotal / 6) * 100)) : 8;
+  const jarFill = reactionTotal ? Math.min(100, Math.round((reactionTotal / kindnessJarCapacity) * 100)) : 8;
   els.kindnessJar.innerHTML = `
     <div class="jar-visual" aria-hidden="true">
       <span style="height: ${jarFill}%"></span>
@@ -1656,7 +1241,7 @@ function renderCards(container, whispers, options = {}) {
       player.src = whisper.audioUrl;
       player.classList.remove("hidden");
     } else if (whisper.type === "voice") {
-      card.querySelector(".whisper-content").textContent = "Voice whisper demo. Audio will play here when recorded on this device.";
+      card.querySelector(".whisper-content").textContent = "Voice whisper";
     }
 
     const kindness = card.querySelector(".kindness-received");
@@ -1666,7 +1251,7 @@ function renderCards(container, whispers, options = {}) {
       reveal.type = "button";
       reveal.disabled = responses.length === 0;
       reveal.innerHTML = responses.length
-        ? `<strong>🌼 ${heldCopy(responses.length)}</strong><span>tap to receive</span>`
+        ? `<strong>✨ ${heldCopy(responses.length)}</strong><span>tap to receive</span>`
         : `<strong>${heldCopy(0)}</strong>`;
       reveal.addEventListener("click", () => revealKindness(card, kindness, whisper.id));
       kindness.appendChild(reveal);
