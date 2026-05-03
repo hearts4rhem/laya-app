@@ -558,6 +558,8 @@ let selectedIntensity = 3;
 let mediaRecorder = null;
 let recordChunks = [];
 let draftAudioUrl = "";
+let draftAudioPreviewUrl = "";
+let draftAudioBlob = null;
 let pendingCrisisPost = null;
 let activeWhisperId = null;
 let activeReportWhisperId = null;
@@ -869,11 +871,12 @@ function fromDbWhisper(row) {
   const createdAt = row.created_at ? new Date(row.created_at).getTime() : Date.now();
   const expiresAt = row.expires_at ? new Date(row.expires_at).getTime() : createdAt + 7 * DAY;
   const kindnessCount = Number(row.kindness_count ?? row.response_count ?? 0);
+  const audioUrl = row.audio_url || "";
   return {
     id: row.id,
-    type: row.type || "text",
+    type: row.type || (audioUrl ? "voice" : "text"),
     content: row.content || "",
-    audioUrl: row.audio_url || "",
+    audioUrl,
     language: row.language || "English",
     mood: row.mood || "Confused",
     intensity: Number(row.intensity || 3),
@@ -994,9 +997,8 @@ async function uploadVoiceAudio(whisper) {
     return whisper.audioUrl || "";
   }
 
-  const response = await fetch(whisper.audioUrl);
-  const blob = await response.blob();
-  const extension = blob.type.includes("wav") ? "wav" : "webm";
+  const blob = draftAudioBlob || (await fetch(whisper.audioUrl).then((response) => response.blob()));
+  const extension = audioFileExtension(blob.type);
   const path = `${deviceId}/${whisper.id}.${extension}`;
   const { error } = await supabaseClient.storage
     .from(AUDIO_BUCKET)
@@ -1008,6 +1010,43 @@ async function uploadVoiceAudio(whisper) {
   if (error) throw error;
   const { data } = supabaseClient.storage.from(AUDIO_BUCKET).getPublicUrl(path);
   return data.publicUrl;
+}
+
+function getPreferredAudioMimeType() {
+  if (!window.MediaRecorder?.isTypeSupported) return "";
+  return [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+    "audio/ogg;codecs=opus",
+  ].find((type) => MediaRecorder.isTypeSupported(type)) || "";
+}
+
+function audioFileExtension(mimeType = "") {
+  if (mimeType.includes("mp4") || mimeType.includes("mpeg")) return "m4a";
+  if (mimeType.includes("ogg")) return "ogg";
+  if (mimeType.includes("wav")) return "wav";
+  return "webm";
+}
+
+function microphoneErrorMessage(error) {
+  const errorName = error?.name || "";
+  if (errorName === "NotAllowedError" || errorName === "PermissionDeniedError") {
+    return "Microphone access is blocked. Please allow the microphone for this site, then tap record again.";
+  }
+  if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") {
+    return "Laýa could not find a microphone on this device.";
+  }
+  if (errorName === "NotReadableError" || errorName === "TrackStartError") {
+    return "The microphone is unavailable right now. Close other apps using it, then try again.";
+  }
+  if (errorName === "SecurityError") {
+    return "Voice recording needs localhost or HTTPS. Please open Laýa from http://localhost:5500/ or the deployed site.";
+  }
+  if (errorName === "OverconstrainedError") {
+    return "This microphone setting is not available on this device. Please try another browser or mic.";
+  }
+  return `Microphone unavailable: ${errorName || error?.message || "the browser did not share a reason"}.`;
 }
 
 function pruneExpired() {
@@ -1899,20 +1938,31 @@ async function deleteWhisper(whisperId) {
 }
 
 async function startRecording() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    els.recordStatus.textContent = "Voice recording needs localhost or HTTPS.";
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    els.recordStatus.textContent = "Voice recording needs localhost, HTTPS, and microphone access.";
     return;
   }
 
+  clearDraft();
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   recordChunks = [];
-  mediaRecorder = new MediaRecorder(stream);
+  const mimeType = getPreferredAudioMimeType();
+  mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
   mediaRecorder.ondataavailable = (event) => {
     if (event.data.size) recordChunks.push(event.data);
   };
   mediaRecorder.onstop = () => {
     stream.getTracks().forEach((track) => track.stop());
-    const blob = new Blob(recordChunks, { type: "audio/webm" });
+    const blob = new Blob(recordChunks, { type: mediaRecorder?.mimeType || mimeType || "audio/webm" });
+    if (!recordChunks.length || !blob.size) {
+      els.recordStatus.textContent = "No audio was captured. Try again and allow microphone access.";
+      els.playDraftButton.disabled = true;
+      els.clearDraftButton.disabled = true;
+      return;
+    }
+
+    draftAudioBlob = blob;
+    draftAudioPreviewUrl = URL.createObjectURL(blob);
     const reader = new FileReader();
     reader.onloadend = () => {
       draftAudioUrl = String(reader.result || "");
@@ -1921,9 +1971,19 @@ async function startRecording() {
       els.recordStatus.textContent = "Your whisper is ready";
       els.voiceRecorder.classList.toggle("has-draft", Boolean(draftAudioUrl));
     };
+    reader.onerror = () => {
+      els.recordStatus.textContent = "Laýa could not prepare the voice preview. Please try again.";
+      clearDraft();
+    };
     reader.readAsDataURL(blob);
   };
-  mediaRecorder.start();
+  mediaRecorder.onerror = (event) => {
+    console.error("Laýa recorder error", event.error || event);
+    els.recordStatus.textContent = "Laýa could not keep recording. Please try again.";
+    stream.getTracks().forEach((track) => track.stop());
+    clearDraft();
+  };
+  mediaRecorder.start(250);
   els.recordButton.classList.add("recording");
   els.voiceRecorder.classList.add("recording");
   els.recordButton.setAttribute("aria-label", "Stop recording");
@@ -1942,7 +2002,10 @@ function stopRecording() {
 }
 
 function clearDraft() {
+  if (draftAudioPreviewUrl) URL.revokeObjectURL(draftAudioPreviewUrl);
   draftAudioUrl = "";
+  draftAudioPreviewUrl = "";
+  draftAudioBlob = null;
   els.playDraftButton.disabled = true;
   els.clearDraftButton.disabled = true;
   els.voiceRecorder.classList.remove("has-draft", "recording");
@@ -2012,13 +2075,20 @@ function bindEvents() {
     }
     try {
       await startRecording();
-    } catch {
-      els.recordStatus.textContent = "Microphone permission was blocked or unavailable.";
+    } catch (error) {
+      console.error("Laýa microphone start failed", error);
+      els.recordStatus.textContent = microphoneErrorMessage(error);
     }
   });
 
   els.playDraftButton.addEventListener("click", () => {
-    if (draftAudioUrl) new Audio(draftAudioUrl).play();
+    const audioSource = draftAudioPreviewUrl || draftAudioUrl;
+    if (!audioSource) return;
+    const audio = new Audio(audioSource);
+    audio.play().catch((error) => {
+      console.error("Laýa voice preview failed", error);
+      els.recordStatus.textContent = "This browser could not play the preview. Try recording again.";
+    });
   });
 
   els.clearDraftButton.addEventListener("click", clearDraft);
